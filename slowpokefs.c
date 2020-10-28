@@ -36,11 +36,39 @@ static struct options {
   unsigned char nano_sleep : 1;
 } options;
 
+static int readFromFile(char* filename) {
+  if (access(filename, R_OK) == -1)
+    return -1;
+  FILE *fp = fopen(filename, "r");
+  char buff[255];
+  fgets(buff, 255, fp);
+  fclose(fp);
+  return atoi(buff);
+}
+
+static int get_min_sleep() {
+  int val = readFromFile("min");
+  if (val == -1)
+    return min_sleep;
+  return val;
+}
+
+static int get_max_sleep() {
+  int val = readFromFile("max");
+  if (val == -1)
+    return max_sleep;
+  return val;
+}
+
 static void delay() {
-  if (max_sleep == min_sleep)
-    usleep(min_sleep * (options.nano_sleep ? 1 : 1000));
+  int c_max_sleep = get_max_sleep();
+  int c_min_sleep = get_min_sleep();
+  if (options.debug)
+    fprintf(stderr, "delay(%d, %d);\n", c_min_sleep, c_max_sleep);
+  if (c_max_sleep == c_min_sleep)
+    usleep(c_min_sleep * (options.nano_sleep ? 1 : 1000));
   else
-    usleep(((rand() % (max_sleep-min_sleep)) + min_sleep) * (options.nano_sleep ? 1 : 1000));
+    usleep(((rand() % (c_max_sleep-c_min_sleep)) + c_min_sleep) * (options.nano_sleep ? 1 : 1000));
 };
 
 static void fullpath(char fpath[PATH_MAX], const char* path) {
@@ -510,3 +538,4 @@ int main(int argc, char** argv) {
   else
     return fuse_loop(fuse);
 };
+
